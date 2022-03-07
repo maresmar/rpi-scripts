@@ -1,9 +1,10 @@
+from distutils.sysconfig import PREFIX
 import json
 import time
 from typing import Tuple
 
 import mh_z19
-import paho.mqtt.client as mqtt
+import paho.mqtt.publish as publish
 import smbus
 import zc.lockfile
 from bmp280 import BMP280
@@ -16,7 +17,7 @@ def crc_checksum(data):
     crc = 0xFF
 
     # calculates 8-Bit checksum with given polynomial
-    for byte in data: 
+    for byte in data:
         crc ^= byte
         for bit in range(8, 0, -1):
             if crc & 0x80:
@@ -24,6 +25,7 @@ def crc_checksum(data):
             else:
                 crc = (crc << 1)
     return crc
+
 
 def read_sht31(bus) -> Tuple[float, float]:
     # SHT31 address, 0x44(68)
@@ -47,6 +49,7 @@ def read_sht31(bus) -> Tuple[float, float]:
 
     return temp, humidity
 
+
 def read_light(bus) -> float:
     # BH1750
 
@@ -59,7 +62,7 @@ def read_light(bus) -> float:
 
     # Measurement
     time.sleep(0.180)
-    bus.write_byte(LIGHT_ADDRS, POWER_ON) 
+    bus.write_byte(LIGHT_ADDRS, POWER_ON)
     time.sleep(0.180)
     bus.write_byte(LIGHT_ADDRS, ONE_TIME_HIGH_RES_MODE_2)
     time.sleep(0.180)
@@ -70,10 +73,6 @@ def read_light(bus) -> float:
 
 
 if __name__ == "__main__":
-    # Connect to MQTT
-    client = mqtt.Client("PyClient", protocol=mqtt.MQTTv5)
-    client.connect("localhost")
-
     # Lock the GPIO access
     lock = zc.lockfile.LockFile('/tmp/gpio.lock')
 
@@ -84,13 +83,8 @@ if __name__ == "__main__":
         # Temp
         temp, humidity = read_sht31(bus)
 
-        client.publish(f"{PREFIX}/temp", temp, retain=True)
-        client.publish(f"{PREFIX}/humidity", humidity, retain=True)
-
         # Light
         light = read_light(bus)
-
-        client.publish(f"{PREFIX}/light", light, retain=True)
 
         # Pressure - BMP280
         bmp280 = BMP280(i2c_dev=bus)
@@ -98,7 +92,6 @@ if __name__ == "__main__":
         pressure = bmp280.get_pressure()
         if pressure < 900:
             pressure = None
-        client.publish(f"{PREFIX}/pressure", pressure, retain=True)
 
         # CO2 - MH-Z19B
         data = mh_z19.read(True)
@@ -106,15 +99,24 @@ if __name__ == "__main__":
             co2 = data["co2"]
         else:
             co2 = None
-        client.publish(f"{PREFIX}/co2", co2, retain=True)
 
-        data = json.dumps({"temp": temp,
-                "humidity": humidity, 
-                "light": light, 
+        # Preperat output data
+        data = {"temp": temp,
+                "humidity": humidity,
+                "light": light,
                 "pressure": pressure,
-                "co2":co2
-                })
-        print(data)
+                "co2": co2
+                }
+        print(json.dumps(data))
+
+        # Current time in milis
+        data["time"] = int(time.time()*1000)
+
+        publish.single(f"{PREFIX}/gpio",
+                       payload=json.dumps(data),
+                       hostname="localhost",
+                       client_id="PyClient",
+                       retain=True)
 
     finally:
         if bus:
