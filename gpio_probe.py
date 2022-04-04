@@ -97,8 +97,6 @@ if __name__ == "__main__":
             pressure = None
 
         # CO2 - MH-Z19B
-        mh_z19.abc_off(True)
-        mh_z19.detection_range_10000(True)
         data = mh_z19.read(True)
         if data:
             co2 = data["co2"]
