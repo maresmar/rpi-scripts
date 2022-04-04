@@ -1,5 +1,5 @@
-from distutils.sysconfig import PREFIX
 import json
+import os
 import time
 from typing import Tuple
 
@@ -8,8 +8,11 @@ import paho.mqtt.publish as publish
 import smbus
 import zc.lockfile
 from bmp280 import BMP280
+from dotenv import load_dotenv
 
-PREFIX = "pi"
+load_dotenv()
+MQTT_PREFIX = os.getenv("MQTT_PREFIX");
+MQTT_CLIENT = os.getenv("MQTT_CLIENT");
 
 
 def crc_checksum(data):
@@ -112,10 +115,10 @@ if __name__ == "__main__":
         # Current time in milis
         data["time"] = int(time.time()*1000)
 
-        publish.single(f"{PREFIX}/gpio",
+        publish.single(f"{MQTT_PREFIX}/sensors",
                        payload=json.dumps(data),
                        hostname="localhost",
-                       client_id="PyClient",
+                       client_id=MQTT_CLIENT,
                        retain=True)
 
     finally:
