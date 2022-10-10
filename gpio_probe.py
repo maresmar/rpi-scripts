@@ -93,7 +93,7 @@ if __name__ == "__main__":
         bmp280 = BMP280(i2c_dev=bus)
         bmp280.setup()
         pressure = bmp280.get_pressure()
-        if pressure < 900:
+        if pressure < 910:
             pressure = None
 
         # CO2 - MH-Z19B
