@@ -5,14 +5,14 @@ from typing import Tuple
 
 import mh_z19
 import paho.mqtt.publish as publish
-import smbus
 import zc.lockfile
 from bmp280 import BMP280
 from dotenv import load_dotenv
+from smbus2 import SMBus
 
 load_dotenv()
-MQTT_PREFIX = os.getenv("MQTT_PREFIX");
-MQTT_CLIENT = os.getenv("MQTT_CLIENT");
+MQTT_PREFIX = os.getenv("MQTT_PREFIX")
+MQTT_CLIENT = os.getenv("MQTT_CLIENT")
 
 
 def crc_checksum(data):
@@ -30,7 +30,7 @@ def crc_checksum(data):
     return crc
 
 
-def read_sht31(bus) -> Tuple[float, float]:
+def read_sht31(bus: SMBus) -> Tuple[float, float]:
     # SHT31 address, 0x44(68)
     bus.write_i2c_block_data(0x44, 0x2C, [0x06])
 
@@ -53,7 +53,7 @@ def read_sht31(bus) -> Tuple[float, float]:
     return temp, humidity
 
 
-def read_light(bus) -> float:
+def read_light(bus: SMBus) -> float:
     # BH1750
 
     # Constants
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     try:
         # Get I2C bus
-        bus = smbus.SMBus(1)
+        bus = SMBus(1)
 
         # Temp
         temp, humidity = read_sht31(bus)
