@@ -69,7 +69,7 @@ def read_light(bus: SMBus) -> float:
     time.sleep(0.180)
     bus.write_byte(LIGHT_ADDRS, ONE_TIME_HIGH_RES_MODE_2)
     time.sleep(0.180)
-    data = bus.read_i2c_block_data(LIGHT_ADDRS, ONE_TIME_HIGH_RES_MODE_2)
+    data = bus.read_i2c_block_data(LIGHT_ADDRS, ONE_TIME_HIGH_RES_MODE_2, 2)
     light = ((data[0] << 8) + data[1]) / 1.2
 
     return light
